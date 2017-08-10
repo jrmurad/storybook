@@ -3,8 +3,10 @@ import shallow from 'react-test-renderer/shallow';
 
 export const snapshotWithOptions = options => ({ story, context }) => {
   const storyElement = story.render(context);
-  const tree = renderer.create(storyElement, options).toJSON();
+  const testInstance = renderer.create(storyElement, options);
+  const tree = testInstance.toJSON();
   expect(tree).toMatchSnapshot();
+  testInstance.unmount();
 };
 
 export const snapshot = snapshotWithOptions({});
