@@ -1,7 +1,8 @@
 import puppeteer, { Browser, Page } from 'puppeteer-core';
 import { toMatchImageSnapshot } from 'jest-image-snapshot';
 import { logger } from '@storybook/node-logger';
-import { constructUrl } from './url';
+import { toId } from '@storybook/router/utils';
+import { constructBaseUrl, constructUrl } from './url';
 import { ImageSnapshotConfig } from './ImageSnapshotConfig';
 
 expect.extend({ toMatchImageSnapshot });
@@ -18,7 +19,6 @@ const defaultConfig: ImageSnapshotConfig = {
   getMatchOptions: noop,
   getScreenshotOptions: defaultScreenshotOptions,
   beforeScreenshot: noop,
-  getGotoOptions: noop,
   customizePage: asyncNoop,
   getCustomBrowser: undefined,
 };
@@ -30,7 +30,6 @@ export const imageSnapshot = (customConfig: Partial<ImageSnapshotConfig> = {}) =
     getMatchOptions,
     getScreenshotOptions,
     beforeScreenshot,
-    getGotoOptions,
     customizePage,
     getCustomBrowser,
   } = { ...defaultConfig, ...customConfig };
@@ -62,8 +61,15 @@ export const imageSnapshot = (customConfig: Partial<ImageSnapshotConfig> = {}) =
 
     let image;
     try {
+      await page.evaluate((storyId: string) => {
+        (window as any).__STORYBOOK_STORY_STORE__.setSelection({ storyId });
+
+        return new Promise(resolve => {
+          (window as any).__STORYBOOK_STORY_STORE__._channel.on('storyRendered', resolve);
+        });
+      }, toId(kind, name));
+
       await customizePage(page);
-      await page.goto(url, getGotoOptions({ context, url }));
       await beforeScreenshot(page, { context, url });
       image = await page.screenshot(getScreenshotOptions({ context, url }));
     } catch (e) {
@@ -96,6 +102,8 @@ export const imageSnapshot = (customConfig: Partial<ImageSnapshotConfig> = {}) =
     }
 
     page = await browser.newPage();
+
+    await page.goto(constructBaseUrl(storybookUrl));
   };
 
   return testFn;

@@ -2,6 +2,12 @@ import { toId } from '@storybook/router/utils';
 
 import { URL } from 'url';
 
+export const constructBaseUrl = (storybookUrl: string) => {
+  const { protocol, host, pathname } = new URL(storybookUrl);
+  const pname = pathname.replace(/\/$/, ''); // removes trailing /
+  return `${protocol}//${host}${pname}/iframe.html`;
+};
+
 export const constructUrl = (storybookUrl: string, kind: string, story: string) => {
   const id = toId(kind, story);
 
